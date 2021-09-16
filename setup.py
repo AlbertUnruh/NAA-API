@@ -12,5 +12,5 @@ setup(
     license='MIT',
     author='AlbertUnruh',
     description='The API for the NAA (NetworkAttachedAlbert) project',
-    requires=requirements
+    install_requires=requirements
 )
