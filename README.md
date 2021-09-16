@@ -4,6 +4,6 @@ The API for my NAA-project (Network Attached Albert)
 
 # TODO @AlbertUnruh:
 
-- replace `Status Code` to `Status`
-- fix `POST`-requests
-- documentation for `NAA-API`
+- [x] replace `Status Code` to `Status`
+- [ ] fix `POST`-requests
+- [ ] documentation for `NAA-API`
