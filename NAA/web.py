@@ -52,6 +52,11 @@ class API:
             result = self._node.find_node(path.split("/"), APIRequest(request.method, dict(request.headers)))
             return Response(status=result.status_code, headers=result.headers)
 
+        @self._flask.after_request
+        def call_on_close(response: Response):
+            ...  # todo: remove Headers
+            return response
+
         self._node = Node(*HTTP_METHODS)
         self._node(base)
 

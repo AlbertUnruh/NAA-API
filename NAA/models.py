@@ -47,6 +47,7 @@ class Node:
         Parameters
         ----------
         methods: str
+        ignore_invalid_methods: bool
         """
         def decorator(clb):
             """
