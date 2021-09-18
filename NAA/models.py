@@ -42,7 +42,7 @@ class Node:
                 f"You haven't set any (valid) methods for {self.path}! Valid methods are {valid}."))
         return self
 
-    def add(self, *methods):
+    def add(self, *methods, ignore_invalid_methods=False):
         """
         Parameters
         ----------
