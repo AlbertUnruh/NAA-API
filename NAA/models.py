@@ -10,22 +10,22 @@ __all__ = (
 
 class Node:
     _children = dict()  # type: dict[str, "Node"]
+    _clb = None  # type: callable
+    _parent = None  # type: Node
 
-    def __init__(self, *methods):
+    def __init__(self, *methods, ignore_invalid_methods=False):
         """
         Parameters
         ----------
         methods: str
+        ignore_invalid_methods: bool
         """
         from .web import HTTP_METHODS
         u = str.upper
 
         methods = [u(m) for m in methods if u(m) in HTTP_METHODS]
 
-        if not methods:
-            valid = ", ".join(HTTP_METHODS)
-            warn(RuntimeWarning(f"You haven't set any (valid) methods! Valid methods are {valid}."))
-
+        self._must_warn = not methods and not ignore_invalid_methods
         self._methods = methods
 
     def __call__(self, clb):
@@ -36,27 +36,11 @@ class Node:
             The function/method which should be a node.
         """
         self._clb = clb
+        if self._must_warn:
+            valid = ", ".join(__import__(f"{__package__}.web").HTTP_METHODS)
+            warn(RuntimeWarning(
+                f"You haven't set any (valid) methods for {self.path}! Valid methods are {valid}."))
         return self
-
-    def run(self, request):
-        """
-        Parameters
-        ----------
-        request: APIRequest
-
-        Returns
-        -------
-        APIResponse
-        """
-        if request.method not in self._methods:
-            return APIResponse(405)
-
-        result = self._clb(request)
-        if isinstance(result, APIResponse):
-            return result
-        if isinstance(result, tuple):
-            return APIResponse(*result)
-        return APIResponse(result)  # type: ignore
 
     def add(self, *methods):
         """
@@ -77,10 +61,31 @@ class Node:
                 The new node.
             """
             node = Node(*methods)
-            node(clb)
+            node._parent = self
             self._children[clb.__name__] = node
-            return clb
+            node(clb)
+            return node
         return decorator
+
+    def run(self, request):
+        """
+        Parameters
+        ----------
+        request: APIRequest
+
+        Returns
+        -------
+        APIResponse
+        """
+        if request.method not in self._methods:
+            return APIResponse(405)
+
+        result = self._clb(request)
+        if isinstance(result, APIResponse):
+            return result
+        if isinstance(result, tuple):
+            return APIResponse(*result)
+        return APIResponse(result)  # type: ignore
 
     def find_node(self, path, request):
         """
@@ -104,6 +109,17 @@ class Node:
                 return self._children[path[0]].find_node(path[1:], request)
         else:
             return APIResponse(404)
+
+    @property
+    def path(self):
+        """
+        Returns
+        -------
+        str
+        """
+        if self._parent is not None:
+            return self._parent.path + "/" + self._clb.__name__
+        return "/" + self._clb.__name__
 
     def __repr__(self):
         return f"<{self.__class__.__name__}: " \

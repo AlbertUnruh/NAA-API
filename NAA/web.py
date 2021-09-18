@@ -55,11 +55,12 @@ class API:
         self._node = Node(*HTTP_METHODS)
         self._node(base)
 
-    def add(self, *methods):
+    def add(self, *methods, ignore_invalid_methods=False):
         """
         Parameters
         ----------
         methods: str
+        ignore_invalid_methods: bool
         """
         def decorator(clb):
             """
@@ -73,7 +74,7 @@ class API:
             Node
                 The new node.
             """
-            node = Node(*methods)
+            node = Node(*methods, ignore_invalid_methods=ignore_invalid_methods)
             node(clb)
             self._node._children[clb.__name__] = node  # noqa
             return node
