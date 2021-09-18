@@ -1,3 +1,5 @@
+from warnings import warn
+
 
 __all__ = (
     "Node",
@@ -7,16 +9,34 @@ __all__ = (
 
 
 class Node:
-    def __init__(self, clb):
+    _children = dict()  # type: dict[str, "Node"]
+
+    def __init__(self, *methods):
+        """
+        Parameters
+        ----------
+        methods: str
+        """
+        from .web import HTTP_METHODS
+        u = str.upper
+
+        methods = [u(m) for m in methods if u(m) in HTTP_METHODS]
+
+        if not methods:
+            valid = ", ".join(HTTP_METHODS)
+            warn(RuntimeWarning(f"You haven't set any (valid) methods! Valid methods are {valid}."))
+
+        self._methods = methods
+
+    def __call__(self, clb):
         """
         Parameters
         ----------
         clb: callable
             The function/method which should be a node.
         """
-        clb.__is_node__ = True
         self._clb = clb
-        self._children = {}  # type: dict[str, Node]
+        return self
 
     def run(self, request):
         """
@@ -28,32 +48,39 @@ class Node:
         -------
         APIResponse
         """
+        if request.method not in self._methods:
+            return APIResponse(405)
+
         result = self._clb(request)
         if isinstance(result, APIResponse):
             return result
-        if isinstance(result, (int, dict)):
-            return APIResponse(result)
         if isinstance(result, tuple):
             return APIResponse(*result)
-        return APIResponse(result)
+        return APIResponse(result)  # type: ignore
 
-    __call__ = run
-
-    def add(self, clb):
+    def add(self, *methods):
         """
         Parameters
         ----------
-        clb: callable
-            The function/method which should be added as a node.
-
-        Returns
-        -------
-        Node
-            The new node.
+        methods: str
         """
-        node = self.__class__(clb)
-        self._children[node._clb.__name__] = node
-        return node
+        def decorator(clb):
+            """
+            Parameters
+            ----------
+            clb: callable
+                The function/method which should be added as a node.
+
+            Returns
+            -------
+            Node
+                The new node.
+            """
+            node = Node(*methods)
+            node(clb)
+            self._children[clb.__name__] = node
+            return clb
+        return decorator
 
     def find_node(self, path, request):
         """
