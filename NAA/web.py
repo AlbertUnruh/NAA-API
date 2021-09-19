@@ -50,8 +50,19 @@ class API:
             """
             if not (path := request.path[1:]):
                 return Response(status=123)  # todo: allow defaults
-            result = self._node.find_node(path.split("/"), APIRequest(request.method, dict(request.headers)))
-            return Response(status=result.status_code, response=dumps(result.response))
+
+            path = path.split("/")
+            request = APIRequest(request.method, dict(request.headers))
+
+            result = self._node.find_node(path=path, request=request)
+
+            status = result.status_code
+            if response := result.response:
+                response = dumps(response)
+            else:
+                response = None
+
+            return Response(status=status, response=response)
 
         self._node = Node(*HTTP_METHODS)
         self._node(application)
