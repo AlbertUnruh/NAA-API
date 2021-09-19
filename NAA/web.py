@@ -26,7 +26,7 @@ HTTP_METHODS = [
 
 
 class API:
-    def __init__(self, host, port, *, name=None):
+    def __init__(self, host="127.0.0.1", port=3333, *, name=None):
         """
         Parameters
         ----------
