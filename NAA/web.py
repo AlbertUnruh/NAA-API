@@ -62,7 +62,7 @@ class API:
             else:
                 response = None
 
-            return Response(status=status, response=response)
+            return Response(status=status, response=response, content_type="application/json")
 
         self._node = Node(*HTTP_METHODS)
         self._node(application)
