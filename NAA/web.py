@@ -1,4 +1,5 @@
-from flask import Flask, request, Response
+from werkzeug.serving import run_simple
+from werkzeug.wrappers import Request, Response
 
 from .models import Node, APIRequest
 
@@ -9,6 +10,7 @@ __all__ = (
 )
 
 
+HEADERS_TO_REMOVE = ("Content-Type", "Content-Length")
 HTTP_METHODS = [
     "GET",
     "HEAD",
@@ -37,28 +39,22 @@ class API:
         self._host = host
         self._port = port
         self._name = name or "NAA API"
-        self._flask = Flask(self._name)
 
-        @self._flask.route("/", methods=HTTP_METHODS)
-        @self._flask.route("/<path:path>", methods=HTTP_METHODS)
-        def base(path=None):
+        @Request.application
+        def application(request):
             """
             Parameters
             ----------
-            path: str
+            request: Request
             """
-            if path is None:
-                return Response(status=123)
+            if not (path := request.path[1:]):
+                return Response(status=123)  # todo: allow defaults
             result = self._node.find_node(path.split("/"), APIRequest(request.method, dict(request.headers)))
-            return Response(status=result.status_code, headers=result.headers)
-
-        @self._flask.after_request
-        def call_on_close(response: Response):
-            ...  # todo: remove Headers
-            return response
+            return Response(status=result.status_code, response=result.headers)
 
         self._node = Node(*HTTP_METHODS)
-        self._node(base)
+        self._node(application)
+        self._application = application
 
     def add(self, *methods, ignore_invalid_methods=False):
         """
@@ -103,13 +99,13 @@ class API:
         """
         return self._port
 
-    def run_api(self, *, debug=True):
+    def run_api(self, *, debug=False, reload=False):
         """
         Parameters
         ----------
-        debug: bool
-            Whether it should debug.
+        debug, reload: bool
+            Whether it should debug/reload.
         """
-        self._flask.run(self._host, self._port, debug)
+        run_simple(self.host, self.port, self._application, use_reloader=reload, use_debugger=debug)
 
     __call__ = run_api
