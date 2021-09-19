@@ -40,6 +40,7 @@ class API:
         self._host = host
         self._port = port
         self._name = name or "NAA API"
+        self._checks_request_global = []  # type: list[tuple[callable, int]]
 
         @Request.application
         def application(request):
@@ -48,6 +49,10 @@ class API:
             ----------
             request: Request
             """
+            for check, default in self._checks_request_global:
+                if not check(request):
+                    return Response(status=default)
+
             if not (path := request.path[1:]):
                 return Response(status=123)  # todo: allow defaults
 
@@ -91,6 +96,25 @@ class API:
             node(clb)
             self._node._children[clb.__name__] = node  # noqa
             return node
+        return decorator
+
+    def add_global_request_check(self, default_return_value):
+        """
+        If the check returns False the `default_return_value`
+        is returned and the request 'll not be processed.
+
+        Parameters
+        ----------
+        default_return_value: int
+        """
+        def decorator(clb):
+            """
+            Parameters
+            ----------
+            clb: callable
+            """
+            self._checks_request_global.append((clb, default_return_value))
+            return clb
         return decorator
 
     @property
