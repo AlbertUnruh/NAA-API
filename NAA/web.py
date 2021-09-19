@@ -1,5 +1,6 @@
 from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
+from json import dumps
 
 from .models import Node, APIRequest
 
@@ -50,7 +51,7 @@ class API:
             if not (path := request.path[1:]):
                 return Response(status=123)  # todo: allow defaults
             result = self._node.find_node(path.split("/"), APIRequest(request.method, dict(request.headers)))
-            return Response(status=result.status_code, response=result.headers)
+            return Response(status=result.status_code, response=dumps(result.response))
 
         self._node = Node(*HTTP_METHODS)
         self._node(application)

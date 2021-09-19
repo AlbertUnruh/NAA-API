@@ -164,27 +164,27 @@ class APIRequest:
 
 
 class APIResponse:
-    def __init__(self, status_code, headers=None):
+    def __init__(self, status_code, response=None):
         """
         Parameters
         ----------
         status_code: int
-        headers: dict[str, str]
+        response: dict[str, str]
         """
         if isinstance(status_code, dict):
-            headers = status_code
+            response = status_code
             status_code = 200
 
-        if headers is None:
-            headers = {}
+        if response is None:
+            response = {}
 
         assert isinstance(status_code, int), \
             f"'status_code' must be an instance of int, not {status_code.__class__.__name__!r}"
-        assert isinstance(headers, dict), \
-            f"'headers' must be an instance of dict, not {headers.__class__.__name__!r}"
+        assert isinstance(response, dict), \
+            f"'response' must be an instance of dict, not {response.__class__.__name__!r}"
 
         self._status_code = status_code
-        self._headers = headers
+        self._response = response
 
     @property
     def status_code(self):
@@ -196,15 +196,15 @@ class APIResponse:
         return self._status_code
 
     @property
-    def headers(self):
+    def response(self):
         """
         Returns
         -------
         dict[str, str]
         """
-        return self._headers
+        return self._response
 
     def __repr__(self):
         return f"<{self.__class__.__name__}: " \
                f"status_code={self._status_code!r} " \
-               f"headers={self._headers!r}>"
+               f"response={self._response!r}>"
