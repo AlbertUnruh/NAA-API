@@ -27,6 +27,7 @@ class Node:
 
         self._must_warn = not methods and not ignore_invalid_methods
         self._methods = methods
+        self._checks_request = []  # type: list[tuple[callable, int]]
 
     def __call__(self, clb):
         """
@@ -68,6 +69,25 @@ class Node:
             return node
         return decorator
 
+    def add_request_check(self, default_return_value):
+        """
+        If the check returns False the `default_return_value`
+        is returned and the request 'll not be processed.
+
+        Parameters
+        ----------
+        default_return_value: int
+        """
+        def decorator(clb):
+            """
+            Parameters
+            ----------
+            clb: callable
+            """
+            self._checks_request.append((clb, default_return_value))
+            return clb
+        return decorator
+
     def run(self, request):
         """
         Parameters
@@ -78,6 +98,10 @@ class Node:
         -------
         APIResponse
         """
+        for check, default in self._checks_request:
+            if not check(request):
+                return APIResponse(default)
+
         if request.method not in self._methods:
             return APIResponse(405)
 
