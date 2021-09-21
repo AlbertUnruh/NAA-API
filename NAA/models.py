@@ -9,7 +9,6 @@ __all__ = (
 
 
 class Node:
-    _children = dict()  # type: dict[str, "Node"]
     _clb = None  # type: callable
     _parent = None  # type: Node
 
@@ -28,6 +27,7 @@ class Node:
         self._must_warn = not methods and not ignore_invalid_methods
         self._methods = methods
         self._checks_request = []  # type: list[tuple[callable, int]]
+        self._children = {}  # type: dict[str, "Node"]
 
     def __call__(self, clb):
         """
