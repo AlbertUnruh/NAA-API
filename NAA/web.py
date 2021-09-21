@@ -11,7 +11,6 @@ __all__ = (
 )
 
 
-HEADERS_TO_REMOVE = ("Content-Type", "Content-Length")
 HTTP_METHODS = [
     "GET",
     "HEAD",
