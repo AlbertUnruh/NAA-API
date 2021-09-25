@@ -161,7 +161,7 @@ class APIRequest:
         headers: dict[str, str]
         """
         self._method = method
-        self._headers = headers
+        self._headers = CaseInsensitiveDict(headers)
 
     @property
     def method(self):
@@ -235,3 +235,23 @@ class APIResponse:
         return f"<{self.__class__.__name__}: " \
                f"status_code={self._status_code!r} " \
                f"response={self._response!r}>"
+
+
+class CaseInsensitiveDict(dict):
+    def __getitem__(self, item):
+        try:
+            return super().__getitem__(item.lower())
+        except AttributeError:
+            return super().__getitem__(item)
+
+    def __setitem__(self, key, value):
+        try:
+            return super().__setitem__(key.lower(), value)
+        except AttributeError:
+            return super().__setitem__(key, value)
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
