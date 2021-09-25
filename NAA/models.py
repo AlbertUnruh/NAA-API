@@ -242,9 +242,7 @@ class CaseInsensitiveDict(dict):
     def __init__(self, data=None, **kwargs):
         super().__init__()
         self._store = {}
-        if data is None:
-            data = {}
-        self.update(data, **kwargs)
+        self._store.update(data or {}, **kwargs)
 
     def __setitem__(self, key, value):
         # Use the lowercased key for lookups, but store the actual
