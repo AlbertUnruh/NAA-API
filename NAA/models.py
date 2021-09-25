@@ -181,6 +181,9 @@ class APIRequest:
         """
         return self._headers
 
+    def get(self, item, /, default=None):
+        return self.headers.get(item, default)
+
     def __repr__(self):
         return f"<{self.__class__.__name__}: " \
                f"method={self._method!r} " \
