@@ -285,3 +285,9 @@ class CaseInsensitiveDict(dict):
 
     def __repr__(self):
         return str(dict(self.items()))
+
+    def get(self, key, default=None):
+        try:
+            self[key]
+        except KeyError:
+            return default
