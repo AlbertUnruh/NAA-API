@@ -94,12 +94,16 @@ class API:
 
         self._application = application
 
-    def add_version(self, version):
+    def add_version(self, version, *, fallback=None):
         """
         Parameters
         ----------
         version: int
+        fallback: callable, optional
         """
+        if fallback:
+            self.add_version(version)(fallback)
+
         def decorator(clb):
             """
             Parameters
@@ -108,7 +112,10 @@ class API:
             """
             self._current_version = self._version_pattern.format(version=version)
             self._checks_request_global[self._current_version] = []
-            self._versions[self._current_version] = Node(*HTTP_METHODS)(clb)
+            version_node = self._versions.get(self._current_version, Node(*HTTP_METHODS))  # type: Node
+            node = Node(*HTTP_METHODS)(clb)
+            node._children.update(version_node._children)  # noqa
+            self._versions[self._current_version] = node
             clb(self)
             self._current_version = None
             return clb
