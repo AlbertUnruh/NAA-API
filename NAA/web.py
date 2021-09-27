@@ -2,7 +2,7 @@ from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
 from json import dumps
 
-from .models import Node, APIRequest
+from .models import Node, APIRequest, APIResponse
 
 
 __all__ = (
@@ -48,6 +48,7 @@ class API:
         self._port = port
         self._name = name or "NAA API"
         self._checks_request_global = {}  # type: dict[str, list[tuple[callable, int]]]
+        self._checks_response_global = {}  # type: dict[str, list[callable]]
         self._versions = {}  # type: dict[str, Node]
 
         assert "{version}" in version_pattern, "'{version}' must be present in 'version_pattern'!"
@@ -82,13 +83,16 @@ class API:
 
             path = path.split("/")
             request = APIRequest(request.method, dict(request.headers))
-            result = self._versions[version].find_node(path=path, request=request)
+            result = self._versions[version].find_node(path=path, request=request)  # type: APIResponse
+
+            for check in self._checks_response_global.get(version):
+                check(result)
 
             status = result.status_code
             if response := result.response:
                 response = dumps(response)
             else:
-                response = None
+                response = "{}"
 
             return Response(status=status, response=response, content_type="application/json")
 
@@ -111,7 +115,12 @@ class API:
             clb: callable
             """
             self._current_version = self._version_pattern.format(version=version)
-            self._checks_request_global[self._current_version] = []
+
+            self._checks_request_global[self._current_version] = \
+                self._checks_request_global.get(self._current_version, [])
+            self._checks_response_global[self._current_version] = \
+                self._checks_response_global.get(self._current_version, [])
+
             version_node = self._versions.get(self._current_version, Node(*HTTP_METHODS))  # type: Node
             node = Node(*HTTP_METHODS)(clb)
             node._children.update(version_node._children)  # noqa
@@ -164,6 +173,21 @@ class API:
             """
             version = self._get_version()
             self._checks_request_global[version].append((clb, default_return_value))
+            return clb
+        return decorator
+
+    def add_global_response_check(self):
+        """
+        Can be used to edit responses before sending them.
+        """
+        def decorator(clb):
+            """
+            Parameters
+            ----------
+            clb: callable
+            """
+            version = self._get_version()
+            self._checks_response_global[version].append(clb)
             return clb
         return decorator
 

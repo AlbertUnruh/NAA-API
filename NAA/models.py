@@ -27,6 +27,7 @@ class Node:
         self._must_warn = not methods and not ignore_invalid_methods
         self._methods = methods
         self._checks_request = []  # type: list[tuple[callable, int]]
+        self._checks_response = []  # type: list[callable]
         self._children = {}  # type: dict[str, "Node"]
 
     def __call__(self, clb):
@@ -88,6 +89,20 @@ class Node:
             return clb
         return decorator
 
+    def add_response_check(self):
+        """
+        Can be used to edit responses before sending them.
+        """
+        def decorator(clb):
+            """
+            Parameters
+            ----------
+            clb: callable
+            """
+            self._checks_response.append(clb)
+            return clb
+        return decorator
+
     def run(self, request):
         """
         Parameters
@@ -106,11 +121,15 @@ class Node:
             return APIResponse(405)
 
         result = self._clb(request)
-        if isinstance(result, APIResponse):
-            return result
         if isinstance(result, tuple):
-            return APIResponse(*result)
-        return APIResponse(result)  # type: ignore
+            result = APIResponse(*result)
+        else:
+            result = APIResponse(result)
+
+        for check in self._checks_response:
+            check(result)
+
+        return result
 
     def find_node(self, path, request):
         """
