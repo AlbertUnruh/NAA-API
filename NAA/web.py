@@ -74,7 +74,13 @@ class API:
                         break
             del p
 
-            request = APIRequest(request.method, dict(request.headers), request.remote_addr, path)
+            request = APIRequest(
+                method=request.method,
+                headers=dict(request.headers),
+                ip=request.remote_addr,
+                url=path,
+                version=version
+            )
 
             for check, status in self._checks_request_global.get(version):
                 if not check(request):

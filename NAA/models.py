@@ -172,17 +172,18 @@ class Node:
 
 
 class APIRequest:
-    def __init__(self, method, headers, ip, url):
+    def __init__(self, method, headers, ip, url, version):
         """
         Parameters
         ----------
-        method, ip, url: str
+        method, ip, url, version: str
         headers: dict[str, str]
         """
         self._method = method
         self._headers = headers
         self._ip = ip
         self._url = url
+        self._version = version
 
     @property
     def method(self):
@@ -210,6 +211,15 @@ class APIRequest:
         str
         """
         return self._url
+
+    @property
+    def version(self):
+        """
+        Returns
+        -------
+        str
+        """
+        return self._version
 
     @property
     def headers(self):
