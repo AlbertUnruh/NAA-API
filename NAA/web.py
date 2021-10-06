@@ -74,6 +74,8 @@ class API:
                         break
             del p
 
+            request = APIRequest(request.method, dict(request.headers), request.remote_addr, path)
+
             for check, status in self._checks_request_global.get(version):
                 if not check(request):
                     return Response(status=status)
@@ -82,7 +84,6 @@ class API:
                 return Response(status=405)  # todo: allow defaults
 
             path = path.split("/")
-            request = APIRequest(request.method, dict(request.headers))
             result = self._versions[version].find_node(path=path, request=request)  # type: APIResponse
 
             for check in self._checks_response_global.get(version):
