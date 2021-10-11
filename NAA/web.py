@@ -84,10 +84,15 @@ class API:
 
             for check, status in self._checks_request_global.get(version):
                 if not check(request):
-                    return Response(status=status)
+                    return Response(status=status,
+                                    response={"message": APIResponse.DEFAULT_MESSAGES[status]},
+                                    content_type="application/json")
 
             if not path:
-                return Response(status=405)  # todo: allow defaults
+                return Response(status=404,
+                                response={"message": "No Path!"},
+                                content_type="application/json")
+                # todo: allow defaults
 
             path = path.split("/")
             result = self._versions[version].find_node(path=path, request=request)  # type: APIResponse
@@ -96,10 +101,10 @@ class API:
                 check(result)
 
             status = result.status_code
-            if response := result.response:
-                response = dumps(response)
-            else:
-                response = "{}"
+
+            response = result.response
+            response.update(message=result.message)
+            response = dumps(response)
 
             return Response(status=status, response=response, content_type="application/json")
 

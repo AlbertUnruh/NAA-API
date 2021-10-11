@@ -8,6 +8,9 @@ __all__ = (
 )
 
 
+_instance_error = "'{kwarg}' must be an instance of {expected}, not {received.__class__.__name__!r}"
+
+
 class Node:
     _clb = None  # type: callable
     _parent = None  # type: Node
@@ -144,7 +147,7 @@ class Node:
         APIResponse
         """
         assert isinstance(request, APIRequest), \
-            f"'request' must be an instance of APIRequest, not {request.__class__.__name__!r}"
+            _instance_error.format(kwarg="request", expected="APIRequest", received=request)
 
         if path[0] in self._children:
             if len(path) == 1:
@@ -240,12 +243,89 @@ class APIRequest:
 
 
 class APIResponse:
-    def __init__(self, status_code, response=None):
+    DEFAULT_MESSAGES = {  # copied from https://en.wikipedia.ord/wiki/List_of_HTTP_status_codes
+        # 1xx  --  informational response
+        100: "Continue",
+        101: "Switching Protocols",
+        102: "Processing",
+        103: "Early Hints",
+
+        # 2xx  --  success
+        200: "OK",
+        201: "Created",
+        202: "Accepted",
+        203: "Non-Authoritative Information",
+        204: "No Content",
+        205: "Reset Content",
+        206: "Partial Content",
+        207: "Multi-Status",
+        208: "Already Reported",
+        226: "IM Used",
+
+        # 3xx  --  redirection
+        300: "Multiple Choices",
+        301: "Moved Permanently",
+        302: "Found",
+        303: "See Other",
+        304: "Not Modified",
+        305: "Use Proxy",
+        306: "Switch Proxy",
+        307: "Temporary Redirect",
+        308: "Permanent Redirect",
+
+        # 4xx  --  client errors
+        400: "Bad Request",
+        401: "Unauthorized",
+        402: "Payment Required",
+        403: "Forbidden",
+        404: "Not Found",
+        405: "Method Not Allowed",
+        406: "Not Acceptable",
+        407: "Proxy Authentication Required",
+        408: "Request Timeout",
+        409: "Conflict",
+        410: "Gone",
+        411: "Length Required",
+        412: "Precondition Failed",
+        413: "Payload Too Large",
+        414: "URI Too Long",
+        415: "Unsupported Media Type",
+        416: "Range Not Satisfiable",
+        417: "I'm a teapot",
+        421: "Misdirected Request",
+        422: "Unprocessable Entity",
+        423: "Locked",
+        424: "Failed Dependency",
+        425: "Too Early",
+        426: "Upgrade Required",
+        428: "Precondition Required",
+        429: "Too Many Requests",
+        431: "Request Header Fields Too Large",
+        452: "Unavailable For Legal Reasons",
+
+        # 5xx  --  server errors
+        500: "Internal Server Error",
+        501: "Not Implemented",
+        502: "Bad Gateway",
+        503: "Service Unavailable",
+        504: "Gateway Timeout",
+        505: "HTTP Version Not Supported",
+        506: "Variant Also Negotiates",
+        507: "Insufficient Storage",
+        508: "Loop Detected",
+        510: "Not Extended",
+        511: "Network Authentication Required",
+    }
+
+    DEFAULT_MESSAGES.__getitem__ = lambda self, item: self.get(item, default="")
+
+    def __init__(self, status_code, response=None, message=None):
         """
         Parameters
         ----------
         status_code: int
         response: dict[str, str]
+        message: str, optional
         """
         if isinstance(status_code, dict):
             response = status_code
@@ -255,12 +335,20 @@ class APIResponse:
             response = {}
 
         assert isinstance(status_code, int), \
-            f"'status_code' must be an instance of int, not {status_code.__class__.__name__!r}"
+            _instance_error.format(kwarg="status_code", expected="int", received=status_code)
         assert isinstance(response, dict), \
-            f"'response' must be an instance of dict, not {response.__class__.__name__!r}"
+            _instance_error.format(kwarg="response", expected="dict", received=response)
+
+        message = response.pop("message", message)
+        if message is None:
+            message = self.DEFAULT_MESSAGES[status_code]
+
+        assert isinstance(message, str), \
+            _instance_error.format(kwarg="message", expected="str", received=message)
 
         self._status_code = status_code
         self._response = response
+        self._message = message
 
     @property
     def status_code(self):
@@ -279,6 +367,21 @@ class APIResponse:
         dict[str, str]
         """
         return self._response
+
+    @property
+    def message(self):
+        """
+        Returns
+        -------
+        str
+        """
+        return self._message
+
+    @message.setter
+    def message(self, value):
+        assert isinstance(value, str), \
+            _instance_error.format(kwarg="message", expected="str", received=value)
+        self._message = value.title()
 
     def __repr__(self):
         return f"<{self.__class__.__name__}: " \
