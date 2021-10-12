@@ -1,12 +1,10 @@
 from warnings import warn
 
-
 __all__ = (
     "Node",
     "APIResponse",
     "APIRequest"
 )
-
 
 _instance_error = "'{kwarg}' must be an instance of {expected}, not {received.__class__.__name__!r}"
 
@@ -243,7 +241,8 @@ class APIRequest:
 
 
 class APIResponse:
-    DEFAULT_MESSAGES = {  # copied from https://en.wikipedia.ord/wiki/List_of_HTTP_status_codes
+    __dict = type("dict", (dict,), {"__getitem__": lambda self, item: self.get(item, "")})
+    DEFAULT_MESSAGES = __dict({  # copied from https://en.wikipedia.ord/wiki/List_of_HTTP_status_codes
         # 1xx  --  informational response
         100: "Continue",
         101: "Switching Protocols",
@@ -315,9 +314,8 @@ class APIResponse:
         508: "Loop Detected",
         510: "Not Extended",
         511: "Network Authentication Required",
-    }
-
-    DEFAULT_MESSAGES.__getitem__ = lambda self, item: self.get(item, default="")
+    })
+    del __dict
 
     def __init__(self, status_code, response=None, message=None):
         """
@@ -326,10 +324,23 @@ class APIResponse:
         status_code: int
         response: dict[str, str]
         message: str, optional
+
+        Notes
+        -----
+        All parameters are type-checked, which means ``status_code`` can be
+        ``response`` and 'll be ``200`` and if ``response`` is the ``message``
+        it'll also be corrected.
+        This is because the project for which this library originally was coded
+        gets its data for this class by a return and if I want to send
+        ``status_code=201, message="Entry Created"`` I just can return
+        ``201, "Entry Created"`` and don't have to add an empty dictionary
+        to the return.
         """
+        if isinstance(response, str):
+            message, response = response, {}
+
         if isinstance(status_code, dict):
-            response = status_code
-            status_code = 200
+            response, status_code = status_code, 200
 
         if response is None:
             response = {}
@@ -348,7 +359,7 @@ class APIResponse:
 
         self._status_code = status_code
         self._response = response
-        self._message = message
+        self._message = message.title()
 
     @property
     def status_code(self):
