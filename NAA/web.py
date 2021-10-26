@@ -157,7 +157,7 @@ class API:
                 self._checks_response_global.get(self._current_version, [])
 
             version_node = self._versions.get(self._current_version, Node(*HTTP_METHODS))  # type: Node
-            node = Node(*HTTP_METHODS)(clb)
+            node = Node(*HTTP_METHODS, used_libs=self._used_libs)(clb)
             node._children.update(version_node._children)  # noqa
             self._versions[self._current_version] = node
             clb(self)
@@ -185,7 +185,7 @@ class API:
                 The new node.
             """
             version = self._get_version()
-            node = Node(*methods, ignore_invalid_methods=ignore_invalid_methods)
+            node = Node(*methods, ignore_invalid_methods=ignore_invalid_methods, used_libs=self._used_libs)
             node(clb)
             self._versions[version]._children[clb.__name__] = node  # noqa
             return node
