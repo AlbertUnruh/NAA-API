@@ -67,7 +67,7 @@ class Node:
             Node
                 The new node.
             """
-            node = Node(*methods, ignore_invalid_methods=ignore_invalid_methods)
+            node = Node(*methods, ignore_invalid_methods=ignore_invalid_methods, used_libs=self._used_libs)
             node._parent = self
             self._children[clb.__name__] = node
             node(clb)
