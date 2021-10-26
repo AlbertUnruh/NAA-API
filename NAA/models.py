@@ -13,12 +13,13 @@ class Node:
     _clb = None  # type: callable
     _parent = None  # type: Node
 
-    def __init__(self, *methods, ignore_invalid_methods=False):
+    def __init__(self, *methods, ignore_invalid_methods=False, used_libs=None):
         """
         Parameters
         ----------
         methods: str
-        ignore_invalid_methods: bool
+        ignore_invalid_methods: bool,
+        used_libs: list[str], optional
         """
         from .web import HTTP_METHODS
         u = str.upper
@@ -30,6 +31,8 @@ class Node:
         self._checks_request = []  # type: list[tuple[callable, int]]
         self._checks_response = []  # type: list[callable]
         self._children = {}  # type: dict[str, "Node"]
+
+        self._used_libs = used_libs or []
 
     def __call__(self, clb):
         """
@@ -114,18 +117,33 @@ class Node:
         -------
         APIResponse
         """
+        if request.method not in self._methods:
+            return APIResponse(405)
+
         for check, default in self._checks_request:
             if not check(request):
                 return APIResponse(default)
 
-        if request.method not in self._methods:
-            return APIResponse(405)
-
         result = self._clb(request)
+        auu = (None, {})
+
+        # format from return from
+        # AlbertUnruhUtils.ratelimit.server.ServerRateLimit.__call__.decorator()
+        # Notes
+        # -----
+        # - decorator is in this case nested and not direct accessible
+        # - library: https://github.com/AlbertUnruh/AlbertUnruhUtils.py
+        if "AlbertUnruhUtils" in self._used_libs:
+            auu, result = result
+            if not auu[0]:
+                result = 429
+
         if isinstance(result, tuple):
             result = APIResponse(*result)
         else:
             result = APIResponse(result)
+
+        result._response.update(auu[1])  # noqa
 
         for check in self._checks_response:
             check(result)

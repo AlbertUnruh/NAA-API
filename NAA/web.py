@@ -1,13 +1,15 @@
 from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
 from json import dumps
+from warnings import warn
 
 from .models import Node, APIRequest, APIResponse
 
 
 __all__ = (
     "API",
-    "HTTP_METHODS"
+    "HTTP_METHODS",
+    "ALLOWED_LIBS"
 )
 
 
@@ -23,13 +25,18 @@ HTTP_METHODS = [
     "PATCH"
 ]
 
+ALLOWED_LIBS = {
+    "AlbertUnruhUtils": "https://github.com/AlbertUnruh/AlbertUnruhUtils.py",
+}
+
 
 class API:
     _version_pattern = "v{version}"
     _version_default = None
     _current_version = None
 
-    def __init__(self, *, host="127.0.0.1", port=3333, name=None, default=1, version_pattern="v{version}"):
+    def __init__(self, *, host="127.0.0.1", port=3333, name=None, default=1, version_pattern="v{version}",
+                 used_libs=None):
         """
         Parameters
         ----------
@@ -43,6 +50,8 @@ class API:
             The default version.
         version_pattern: str
             The pattern for the versions.
+        used_libs: list[str], optional
+            Additional used libraries to adapt the code to them.
         """
         self._host = host
         self._port = port
@@ -54,6 +63,20 @@ class API:
         assert "{version}" in version_pattern, "'{version}' must be present in 'version_pattern'!"
         self._version_pattern = version_pattern
         self._version_default = self._version_pattern.format(version=default)
+
+        if used_libs is None:
+            used_libs = []
+        assert all(lib in ALLOWED_LIBS for lib in used_libs), \
+            f"You can only use supported libraries! You can use one of these: " \
+            f"{', '.join(f'{k} ({ALLOWED_LIBS[k]})' for k in ALLOWED_LIBS)}"
+        if len(used_libs):
+            if len(used_libs) == 1:
+                lib = used_libs[0]
+                warn(RuntimeWarning(f"Used Library {lib} must be used everywhere!"))
+            else:
+                libs = ", ".join(used_libs[:-1]) + f" and {used_libs[-1]}"
+                warn(RuntimeWarning(f"Used Libraries {libs} must be used everywhere!"))
+        self._used_libs = used_libs
 
         @Request.application
         def application(request):
