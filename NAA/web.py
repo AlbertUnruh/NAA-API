@@ -85,12 +85,12 @@ class API:
             for check, status in self._checks_request_global.get(version):
                 if not check(request):
                     return Response(status=status,
-                                    response={"message": APIResponse.DEFAULT_MESSAGES[status]},
+                                    response=dumps({"message": APIResponse.DEFAULT_MESSAGES[status]}),
                                     content_type="application/json")
 
             if not path:
                 return Response(status=404,
-                                response={"message": "No Path!"},
+                                response=dumps({"message": "No Path!"}),
                                 content_type="application/json")
                 # todo: allow defaults
 
