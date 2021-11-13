@@ -1,12 +1,10 @@
 from warnings import warn
 
-__all__ = (
-    "Node",
-    "APIResponse",
-    "APIRequest"
-)
+__all__ = ("Node", "APIResponse", "APIRequest")
 
-_instance_error = "'{kwarg}' must be an instance of {expected}, not {received.__class__.__name__!r}"
+_instance_error = (
+    "'{kwarg}' must be an instance of {expected}, not {received.__class__.__name__!r}"
+)
 
 
 class Node:
@@ -22,6 +20,7 @@ class Node:
         used_libs: list[str], optional
         """
         from .web import HTTP_METHODS
+
         u = str.upper
 
         methods = [u(m) for m in methods if u(m) in HTTP_METHODS]
@@ -44,8 +43,11 @@ class Node:
         self._clb = clb
         if self._must_warn:
             valid = ", ".join(__import__(f"{__package__}.web").HTTP_METHODS)
-            warn(RuntimeWarning(
-                f"You haven't set any (valid) methods for {self.path}! Valid methods are {valid}."))
+            warn(
+                RuntimeWarning(
+                    f"You haven't set any (valid) methods for {self.path}! Valid methods are {valid}."
+                )
+            )
         return self
 
     def add(self, *methods, ignore_invalid_methods=False):
@@ -55,6 +57,7 @@ class Node:
         methods: str
         ignore_invalid_methods: bool
         """
+
         def decorator(clb):
             """
             Parameters
@@ -67,11 +70,16 @@ class Node:
             Node
                 The new node.
             """
-            node = Node(*methods, ignore_invalid_methods=ignore_invalid_methods, used_libs=self._used_libs)
+            node = Node(
+                *methods,
+                ignore_invalid_methods=ignore_invalid_methods,
+                used_libs=self._used_libs,
+            )
             node._parent = self
             self._children[clb.__name__] = node
             node(clb)
             return node
+
         return decorator
 
     def add_request_check(self, default_return_value):
@@ -83,6 +91,7 @@ class Node:
         ----------
         default_return_value: int
         """
+
         def decorator(clb):
             """
             Parameters
@@ -91,12 +100,14 @@ class Node:
             """
             self._checks_request.append((clb, default_return_value))
             return clb
+
         return decorator
 
     def add_response_check(self):
         """
         Can be used to edit responses before sending them.
         """
+
         def decorator(clb):
             """
             Parameters
@@ -105,6 +116,7 @@ class Node:
             """
             self._checks_response.append(clb)
             return clb
+
         return decorator
 
     def run(self, request):
@@ -162,8 +174,9 @@ class Node:
         -------
         APIResponse
         """
-        assert isinstance(request, APIRequest), \
-            _instance_error.format(kwarg="request", expected="APIRequest", received=request)
+        assert isinstance(request, APIRequest), _instance_error.format(
+            kwarg="request", expected="APIRequest", received=request
+        )
 
         if path[0] in self._children:
             if len(path) == 1:
@@ -185,9 +198,11 @@ class Node:
         return "/" + self._clb.__name__
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}: " \
-               f"name={self._clb.__name__!r} " \
-               f"children={self._children!r}>"
+        return (
+            f"<{self.__class__.__name__}: "
+            f"name={self._clb.__name__!r} "
+            f"children={self._children!r}>"
+        )
 
 
 class APIRequest:
@@ -253,87 +268,95 @@ class APIRequest:
         return self.headers.get(item, default)
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}: " \
-               f"method={self._method!r} " \
-               f"headers={self._headers!r}>"
+        return (
+            f"<{self.__class__.__name__}: "
+            f"method={self._method!r} "
+            f"headers={self._headers!r}>"
+        )
 
 
 class APIResponse:
-    __dict = type("dict", (dict,), {"__getitem__": lambda self, item: self.get(item, "")})
-    DEFAULT_MESSAGES = __dict({  # copied from https://en.wikipedia.ord/wiki/List_of_HTTP_status_codes
-        # 1xx  --  informational response
-        100: "Continue",
-        101: "Switching Protocols",
-        102: "Processing",
-        103: "Early Hints",
+    __dict = type(
+        "dict", (dict,), {"__getitem__": lambda self, item: self.get(item, "")}
+    )
+    # fmt: off
+    DEFAULT_MESSAGES = __dict(
+        {  # copied from https://en.wikipedia.ord/wiki/List_of_HTTP_status_codes
+            # 1xx  --  informational response
+            100: "Continue",
+            101: "Switching Protocols",
+            102: "Processing",
+            103: "Early Hints",
 
-        # 2xx  --  success
-        200: "OK",
-        201: "Created",
-        202: "Accepted",
-        203: "Non-Authoritative Information",
-        204: "No Content",
-        205: "Reset Content",
-        206: "Partial Content",
-        207: "Multi-Status",
-        208: "Already Reported",
-        226: "IM Used",
+            # 2xx  --  success
+            200: "OK",
+            201: "Created",
+            202: "Accepted",
+            203: "Non-Authoritative Information",
+            204: "No Content",
+            205: "Reset Content",
+            206: "Partial Content",
+            207: "Multi-Status",
+            208: "Already Reported",
+            226: "IM Used",
 
-        # 3xx  --  redirection
-        300: "Multiple Choices",
-        301: "Moved Permanently",
-        302: "Found",
-        303: "See Other",
-        304: "Not Modified",
-        305: "Use Proxy",
-        306: "Switch Proxy",
-        307: "Temporary Redirect",
-        308: "Permanent Redirect",
+            # 3xx  --  redirection
+            300: "Multiple Choices",
+            301: "Moved Permanently",
+            302: "Found",
+            303: "See Other",
+            304: "Not Modified",
+            305: "Use Proxy",
+            306: "Switch Proxy",
+            307: "Temporary Redirect",
+            308: "Permanent Redirect",
 
-        # 4xx  --  client errors
-        400: "Bad Request",
-        401: "Unauthorized",
-        402: "Payment Required",
-        403: "Forbidden",
-        404: "Not Found",
-        405: "Method Not Allowed",
-        406: "Not Acceptable",
-        407: "Proxy Authentication Required",
-        408: "Request Timeout",
-        409: "Conflict",
-        410: "Gone",
-        411: "Length Required",
-        412: "Precondition Failed",
-        413: "Payload Too Large",
-        414: "URI Too Long",
-        415: "Unsupported Media Type",
-        416: "Range Not Satisfiable",
-        417: "Expectation Failed",
-        418: "I'm a teapot",
-        421: "Misdirected Request",
-        422: "Unprocessable Entity",
-        423: "Locked",
-        424: "Failed Dependency",
-        425: "Too Early",
-        426: "Upgrade Required",
-        428: "Precondition Required",
-        429: "Too Many Requests",
-        431: "Request Header Fields Too Large",
-        452: "Unavailable For Legal Reasons",
+            # 4xx  --  client errors
+            400: "Bad Request",
+            401: "Unauthorized",
+            402: "Payment Required",
+            403: "Forbidden",
+            404: "Not Found",
+            405: "Method Not Allowed",
+            406: "Not Acceptable",
+            407: "Proxy Authentication Required",
+            408: "Request Timeout",
+            409: "Conflict",
+            410: "Gone",
+            411: "Length Required",
+            412: "Precondition Failed",
+            413: "Payload Too Large",
+            414: "URI Too Long",
+            415: "Unsupported Media Type",
+            416: "Range Not Satisfiable",
+            417: "Expectation Failed",
+            418: "I'm a teapot",
+            421: "Misdirected Request",
+            422: "Unprocessable Entity",
+            423: "Locked",
+            424: "Failed Dependency",
+            425: "Too Early",
+            426: "Upgrade Required",
+            428: "Precondition Required",
+            429: "Too Many Requests",
+            431: "Request Header Fields Too Large",
+            452: "Unavailable For Legal Reasons",
 
-        # 5xx  --  server errors
-        500: "Internal Server Error",
-        501: "Not Implemented",
-        502: "Bad Gateway",
-        503: "Service Unavailable",
-        504: "Gateway Timeout",
-        505: "HTTP Version Not Supported",
-        506: "Variant Also Negotiates",
-        507: "Insufficient Storage",
-        508: "Loop Detected",
-        510: "Not Extended",
-        511: "Network Authentication Required",
-    })
+            # 5xx  --  server errors
+            500: "Internal Server Error",
+            501: "Not Implemented",
+            502: "Bad Gateway",
+            503: "Service Unavailable",
+            504: "Gateway Timeout",
+            505: "HTTP Version Not Supported",
+            506: "Variant Also Negotiates",
+            507: "Insufficient Storage",
+            508: "Loop Detected",
+            510: "Not Extended",
+            511: "Network Authentication Required",
+        }
+    )
+    # fmt: on
     del __dict
 
     def __init__(self, status_code, response=None, message=None):
@@ -364,17 +387,20 @@ class APIResponse:
         if response is None:
             response = {}
 
-        assert isinstance(status_code, int), \
-            _instance_error.format(kwarg="status_code", expected="int", received=status_code)
-        assert isinstance(response, dict), \
-            _instance_error.format(kwarg="response", expected="dict", received=response)
+        assert isinstance(status_code, int), _instance_error.format(
+            kwarg="status_code", expected="int", received=status_code
+        )
+        assert isinstance(response, dict), _instance_error.format(
+            kwarg="response", expected="dict", received=response
+        )
 
         message = response.pop("message", message)
         if message is None:
             message = self.DEFAULT_MESSAGES[status_code]
 
-        assert isinstance(message, str), \
-            _instance_error.format(kwarg="message", expected="str", received=message)
+        assert isinstance(message, str), _instance_error.format(
+            kwarg="message", expected="str", received=message
+        )
 
         self._status_code = status_code
         self._response = response
@@ -409,11 +435,14 @@ class APIResponse:
 
     @message.setter
     def message(self, value):
-        assert isinstance(value, str), \
-            _instance_error.format(kwarg="message", expected="str", received=value)
+        assert isinstance(value, str), _instance_error.format(
+            kwarg="message", expected="str", received=value
+        )
         self._message = value.title()
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}: " \
-               f"status_code={self._status_code!r} " \
-               f"response={self._response!r}>"
+        return (
+            f"<{self.__class__.__name__}: "
+            f"status_code={self._status_code!r} "
+            f"response={self._response!r}>"
+        )

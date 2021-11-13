@@ -9,7 +9,7 @@ from .models import Node, APIRequest, APIResponse
 __all__ = (
     "API",
     "HTTP_METHODS",
-    "ALLOWED_LIBS"
+    "ALLOWED_LIBS",
 )
 
 
@@ -22,7 +22,7 @@ HTTP_METHODS = [
     "CONNECT",
     "OPTIONS",
     "TRACE",
-    "PATCH"
+    "PATCH",
 ]
 
 ALLOWED_LIBS = {
@@ -35,8 +35,16 @@ class API:
     _version_default = None
     _current_version = None
 
-    def __init__(self, *, host="127.0.0.1", port=3333, name=None, default=1, version_pattern="v{version}",
-                 used_libs=None):
+    def __init__(
+        self,
+        *,
+        host="127.0.0.1",
+        port=3333,
+        name=None,
+        default=1,
+        version_pattern="v{version}",
+        used_libs=None,
+    ):
         """
         Parameters
         ----------
@@ -60,15 +68,18 @@ class API:
         self._checks_response_global = {}  # type: dict[str, list[callable]]
         self._versions = {}  # type: dict[str, Node]
 
-        assert "{version}" in version_pattern, "'{version}' must be present in 'version_pattern'!"
+        assert (
+            "{version}" in version_pattern
+        ), "'{version}' must be present in 'version_pattern'!"
         self._version_pattern = version_pattern
         self._version_default = self._version_pattern.format(version=default)
 
         if used_libs is None:
             used_libs = []
-        assert all(lib in ALLOWED_LIBS for lib in used_libs), \
-            f"You can only use supported libraries! You can use one of these: " \
+        assert all(lib in ALLOWED_LIBS for lib in used_libs), (
+            f"You can only use supported libraries! You can use one of these: "
             f"{', '.join(f'{k} ({ALLOWED_LIBS[k]})' for k in ALLOWED_LIBS)}"
+        )
         if len(used_libs):
             if len(used_libs) == 1:
                 lib = used_libs[0]
@@ -93,7 +104,7 @@ class API:
                 for v in self._versions:
                     if v == p[0]:
                         version = v
-                        path = path[len(v)+1:]  # to get rid of the version in path
+                        path = path[len(v) + 1 :]  # to get rid of the version in path
                         break
             del p
 
@@ -102,23 +113,31 @@ class API:
                 headers=dict(request.headers),
                 ip=request.remote_addr,
                 url=path,
-                version=version
+                version=version,
             )
 
             for check, status in self._checks_request_global.get(version):
                 if not check(request):
-                    return Response(status=status,
-                                    response=dumps({"message": APIResponse.DEFAULT_MESSAGES[status]}),
-                                    content_type="application/json")
+                    return Response(
+                        status=status,
+                        response=dumps(
+                            {"message": APIResponse.DEFAULT_MESSAGES[status]}
+                        ),
+                        content_type="application/json",
+                    )
 
             if not path:
-                return Response(status=404,
-                                response=dumps({"message": "No Path!"}),
-                                content_type="application/json")
+                return Response(
+                    status=404,
+                    response=dumps({"message": "No Path!"}),
+                    content_type="application/json",
+                )
                 # todo: allow defaults
 
             path = path.split("/")
-            result = self._versions[version].find_node(path=path, request=request)  # type: APIResponse
+            result = self._versions[version].find_node(
+                path=path, request=request
+            )  # type: APIResponse
 
             for check in self._checks_response_global.get(version):
                 check(result)
@@ -129,7 +148,9 @@ class API:
             response.update(message=result.message)
             response = dumps(response)
 
-            return Response(status=status, response=response, content_type="application/json")
+            return Response(
+                status=status, response=response, content_type="application/json"
+            )
 
         self._application = application
 
@@ -151,19 +172,23 @@ class API:
             """
             self._current_version = self._version_pattern.format(version=version)
 
-            self._checks_request_global[self._current_version] = \
-                self._checks_request_global.get(self._current_version, [])
-            self._checks_response_global[self._current_version] = \
-                self._checks_response_global.get(self._current_version, [])
+            self._checks_request_global[
+                self._current_version
+            ] = self._checks_request_global.get(self._current_version, [])
+            self._checks_response_global[
+                self._current_version
+            ] = self._checks_response_global.get(self._current_version, [])
 
-            version_node = self._versions.get(self._current_version, Node(*HTTP_METHODS,
-                                                                          used_libs=self._used_libs))  # type: Node
+            version_node = self._versions.get(
+                self._current_version, Node(*HTTP_METHODS, used_libs=self._used_libs)
+            )  # type: Node
             node = Node(*HTTP_METHODS, used_libs=self._used_libs)(clb)
             node._children.update(version_node._children)  # noqa
             self._versions[self._current_version] = node
             clb(self)
             self._current_version = None
             return clb
+
         return decorator
 
     def add(self, *methods, ignore_invalid_methods=False):
@@ -173,6 +198,7 @@ class API:
         methods: str
         ignore_invalid_methods: bool
         """
+
         def decorator(clb):
             """
             Parameters
@@ -186,10 +212,15 @@ class API:
                 The new node.
             """
             version = self._get_version()
-            node = Node(*methods, ignore_invalid_methods=ignore_invalid_methods, used_libs=self._used_libs)
+            node = Node(
+                *methods,
+                ignore_invalid_methods=ignore_invalid_methods,
+                used_libs=self._used_libs,
+            )
             node(clb)
             self._versions[version]._children[clb.__name__] = node  # noqa
             return node
+
         return decorator
 
     def add_global_request_check(self, default_return_value):
@@ -201,6 +232,7 @@ class API:
         ----------
         default_return_value: int
         """
+
         def decorator(clb):
             """
             Parameters
@@ -210,12 +242,14 @@ class API:
             version = self._get_version()
             self._checks_request_global[version].append((clb, default_return_value))
             return clb
+
         return decorator
 
     def add_global_response_check(self):
         """
         Can be used to edit responses before sending them.
         """
+
         def decorator(clb):
             """
             Parameters
@@ -225,6 +259,7 @@ class API:
             version = self._get_version()
             self._checks_response_global[version].append(clb)
             return clb
+
         return decorator
 
     @property
@@ -254,8 +289,16 @@ class API:
         """
         if self._versions and (default := self._version_default) is not None:
             if default not in self._versions:
-                raise RuntimeError(f"Can't have {default!r} as default version, because this version is not set!")
-        run_simple(self.host, self.port, self._application, use_reloader=reload, use_debugger=debug)
+                raise RuntimeError(
+                    f"Can't have {default!r} as default version, because this version is not set!"
+                )
+        run_simple(
+            self.host,
+            self.port,
+            self._application,
+            use_reloader=reload,
+            use_debugger=debug,
+        )
 
     __call__ = run_api
 
@@ -269,6 +312,9 @@ class API:
         ------
         AssertionError
         """
-        assert (version := self._current_version) is not None, \
+        assert (
+            version := self._current_version
+        ) is not None, (
             "You can only add an endpoint if you are in a version (API.add_version)"
+        )
         return version
