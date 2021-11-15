@@ -89,70 +89,67 @@ class API:
                 warn(RuntimeWarning(f"Used Libraries {libs} must be used everywhere!"))
         self._used_libs = used_libs
 
-        @Request.application
-        def application(request):
-            """
-            Parameters
-            ----------
-            request: Request
-            """
-            path = request.path[1:]
+    @Request.application
+    def _application(self, request):
+        """
+        Parameters
+        ----------
+        request: Request
+        """
+        path = request.path[1:]
 
-            version = self._version_default
-            p = path.split("/")
-            if p:
-                for v in self._versions:
-                    if v == p[0]:
-                        version = v
-                        path = path[len(v) + 1 :]  # to get rid of the version in path
-                        break
-            del p
+        version = self._version_default
+        p = path.split("/")
+        if p:
+            for v in self._versions:
+                if v == p[0]:
+                    version = v
+                    # to get rid of the version in path
+                    path = path[len(v) + 1 :]  # noqa: E203
+                    break
+        del p
 
-            request = APIRequest(
-                method=request.method,
-                headers=dict(request.headers),
-                ip=request.remote_addr,
-                url=path,
-                version=version,
-            )
+        request = APIRequest(
+            method=request.method,
+            headers=dict(request.headers),
+            ip=request.remote_addr,
+            url=path,
+            version=version,
+        )
 
-            for check, status in self._checks_request_global.get(version):
-                if not check(request):
-                    return Response(
-                        status=status,
-                        response=dumps(
-                            {"message": APIResponse.DEFAULT_MESSAGES[status]}
-                        ),
-                        content_type="application/json",
-                    )
-
-            if not path:
+        for check, status in self._checks_request_global.get(version):
+            if not check(request):
                 return Response(
-                    status=404,
-                    response=dumps({"message": "No Path!"}),
+                    status=status,
+                    response=dumps({"message": APIResponse.DEFAULT_MESSAGES[status]}),
                     content_type="application/json",
                 )
-                # todo: allow defaults
 
-            path = path.split("/")
-            result = self._versions[version].find_node(
-                path=path, request=request
-            )  # type: APIResponse
-
-            for check in self._checks_response_global.get(version):
-                check(result)
-
-            status = result.status_code
-
-            response = result.response
-            response.update(message=result.message)
-            response = dumps(response)
-
+        if not path:
             return Response(
-                status=status, response=response, content_type="application/json"
+                status=404,
+                response=dumps({"message": "No Path!"}),
+                content_type="application/json",
             )
+            # todo: allow defaults
 
-        self._application = application
+        path = path.split("/")
+        result = self._versions[version].find_node(
+            path=path, request=request
+        )  # type: APIResponse
+
+        for check in self._checks_response_global.get(version):
+            check(result)
+
+        status = result.status_code
+
+        response = result.response
+        response.update(message=result.message)
+        response = dumps(response)
+
+        return Response(
+            status=status, response=response, content_type="application/json"
+        )
 
     def add_version(self, version, *, fallback=None):
         """
