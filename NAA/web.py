@@ -130,6 +130,19 @@ class API:
 
         if not path:
             result = self._default_endpoint(request)
+
+            # format result from
+            # AlbertUnruhUtils.ratelimit.server.ServerRateLimit.__call__.decorator()
+            # Notes
+            # -----
+            # - decorator is in this case nested and not direct accessible
+            # - library: https://github.com/AlbertUnruh/AlbertUnruhUtils.py
+            if "AlbertUnruhUtils" in self._used_libs:
+                auu, result = result
+                if not auu[0]:
+                    result = APIResponse(429)
+                result._response.update(auu[1])  # noqa
+
         else:
             path = path.split("/")
             result = self._versions[version].find_node(
