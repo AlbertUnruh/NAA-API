@@ -1,3 +1,5 @@
+import typing
+
 from werkzeug.serving import run_simple
 from werkzeug.wrappers import Request, Response
 from json import dumps
@@ -67,6 +69,7 @@ class API:
         self._checks_request_global = {}  # type: dict[str, list[tuple[callable, int]]]
         self._checks_response_global = {}  # type: dict[str, list[callable]]
         self._versions = {}  # type: dict[str, Node]
+        self._default_endpoint = lambda *_: APIResponse(404, {"message": "No Path!"})
 
         assert (
             "{version}" in version_pattern
@@ -126,17 +129,12 @@ class API:
                 )
 
         if not path:
-            return Response(
-                status=404,
-                response=dumps({"message": "No Path!"}),
-                content_type="application/json",
-            )
-            # todo: allow defaults
-
-        path = path.split("/")
-        result = self._versions[version].find_node(
-            path=path, request=request
-        )  # type: APIResponse
+            result = self._default_endpoint(request)
+        else:
+            path = path.split("/")
+            result = self._versions[version].find_node(
+                path=path, request=request
+            )  # type: APIResponse
 
         for check in self._checks_response_global.get(version):
             check(result)
@@ -258,6 +256,25 @@ class API:
             return clb
 
         return decorator
+
+    def default_endpoint(
+        self,
+        clb: typing.Callable[[APIRequest], APIResponse],
+    ) -> typing.Callable[[APIRequest], APIResponse]:
+        """
+        Adds a default endpoint. 'll be displayed if no path is given.
+
+        Parameters
+        ----------
+        clb: typing.Callable[[APIRequest], APIResponse]
+            The endpoint.
+
+        Returns
+        -------
+        typing.Callable[[APIRequest], APIResponse]
+        """
+        self._default_endpoint = clb
+        return clb
 
     @property
     def host(self):
