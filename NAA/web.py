@@ -162,15 +162,15 @@ class API:
             status=status, response=response, content_type="application/json"
         )
 
-    def add_version(self, version, *, fallback=None):
+    def add_version(self, version, *fallback: callable):
         """
         Parameters
         ----------
         version: int
-        fallback: callable, optional
+        fallback: list[callable]
         """
-        if fallback:
-            self.add_version(version)(fallback)
+        for fb in fallback:
+            self.add_version(version)(fb)
 
         def decorator(clb):
             """
