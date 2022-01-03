@@ -11,6 +11,10 @@ class Node:
     _clb = None  # type: callable
     _parent = None  # type: Node
 
+    _checks_request: list[tuple[callable, int]]
+    _checks_response: list[callable]
+    _children: dict[str, "Node"]
+
     def __init__(self, *methods, ignore_invalid_methods=False, used_libs=None):
         """
         Parameters
@@ -27,9 +31,9 @@ class Node:
 
         self._must_warn = not methods and not ignore_invalid_methods
         self._methods = methods
-        self._checks_request = []  # type: list[tuple[callable, int]]
-        self._checks_response = []  # type: list[callable]
-        self._children = {}  # type: dict[str, "Node"]
+        self._checks_request = []
+        self._checks_response = []
+        self._children = {}
 
         self._used_libs = used_libs or []
 

@@ -32,10 +32,18 @@ ALLOWED_LIBS = {
 }
 
 
+def _default_endpoint(*_):
+    return APIResponse(404, {"message": "No Path!"})
+
+
 class API:
     _version_pattern = "v{version}"
     _version_default = None
     _current_version = None
+
+    _checks_request_global: dict[str, list[tuple[callable, int]]]
+    _checks_response_global: dict[str, list[callable]]
+    _versions: dict[str, Node]
 
     def __init__(
         self,
@@ -66,10 +74,10 @@ class API:
         self._host = host
         self._port = port
         self._name = name or "NAA API"
-        self._checks_request_global = {}  # type: dict[str, list[tuple[callable, int]]]
-        self._checks_response_global = {}  # type: dict[str, list[callable]]
-        self._versions = {}  # type: dict[str, Node]
-        self._default_endpoint = lambda *_: APIResponse(404, {"message": "No Path!"})
+        self._checks_request_global = {}
+        self._checks_response_global = {}
+        self._versions = {}
+        self._default_endpoint = _default_endpoint
 
         assert (
             "{version}" in version_pattern
@@ -307,12 +315,14 @@ class API:
         """
         return self._port
 
-    def run_api(self, *, debug=False, reload=False):
+    def run_api(self, *, debug=False, reload=False, processes=1):
         """
         Parameters
         ----------
         debug, reload: bool
             Whether it should debug/reload.
+        processes: int
+            The number of processes which can be used by the server.
         """
         if self._versions and (default := self._version_default) is not None:
             if default not in self._versions:
@@ -325,6 +335,7 @@ class API:
             self._application,
             use_reloader=reload,
             use_debugger=debug,
+            processes=processes,
         )
 
     __call__ = run_api

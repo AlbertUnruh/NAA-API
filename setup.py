@@ -24,6 +24,7 @@ with open("requirements.txt") as f:
 name = "NAA"
 packages = [
     f"{name}",
+    f"{name}.asynchronous",
 ]
 
 
